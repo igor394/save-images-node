@@ -7,17 +7,24 @@ const Image = db.image;
 
 //server
 http.createServer((req, res) => {
-        if (req.url === '/') {
-            sendResource('index.html', 'text/html', res);
-        }
-        else if (/\/uploads\/[^\/]+$/.test(req.url) && req.method === 'POST') {
+       if (/\/uploads\/[^\/]+$/.test(req.url) && req.method === 'POST') {
             saveUploadFile(req, res);
         }
-        else {
-            sendResource(req.url, getContentType(req.url), res);
+        else if (req.url === '/save-form'){
+            let body = '';
+            req.on('data', chunk =>{
+                body += chunk.toString();
+            });
+            req.on('end', ()=>{
+                // console.log(body);
+                writeToDataBase(body, res);
+            });
         }
-}).listen(3500, () => {
-    console.log('server start 3500');
+        else {
+           sendResource(req.url === '/' ? 'index.html' : req.url , req.url === '/' ? "text/html" : getContentType(req.url), res);
+        }
+}).listen(3000, () => {
+    console.log('server start 3000');
 });
 
 
@@ -85,3 +92,19 @@ function saveUploadFile(req, res) {
 }
 
 //save writeToDataBase
+function writeToDataBase(data, res){
+    data = JSON.parse(data, true);
+    console.log(data);
+    Image.create({
+        image_name: data['input-1'],
+        file_name:  data['input-2'],
+        user_name:  data['input-3'],
+    })
+        .then(result => {
+            console.log(result);
+            res.end('ok');
+        }).catch(err=>{
+        console.log(err);
+        res.end('err..')
+    })
+}
